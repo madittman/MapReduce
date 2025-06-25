@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package task_queue;
+
+service TaskQueue {
+  rpc GetTask (Request) returns (Task);
+}
+
+message Request {
+  int32 worker_id = 1;  // PID of worker
+}
+
+message Task {
+    int32 task_id = 1;
+    string type = 2;  // either "map" or "reduce"
+    repeated string files = 3;
+}
