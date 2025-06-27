@@ -14,7 +14,7 @@ if args.num_of_map_tasks < args.num_of_reduce_tasks:
     raise TypeError("Number of map tasks cannot be less than number of reduce tasks")
 
 driver: Driver = Driver(
-    num_of_map_tasks=args.num_of_reduce_tasks,
+    num_of_map_tasks=args.num_of_map_tasks,
     num_of_reduce_tasks=args.num_of_reduce_tasks,
     file_path=args.file_path,
 )

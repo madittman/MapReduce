@@ -1,5 +1,6 @@
 import grpc
 import os
+import pprint
 from concurrent import futures
 from dataclasses import dataclass, field
 from queue import Queue
@@ -31,24 +32,42 @@ class Driver:
     )
     task_queue_servicer: TaskQueueServicer = field(default_factory=TaskQueueServicer)
     files: List[str] = field(init=False)
+    tasks: List[task_queue_pb2.Task] = field(default_factory=list)
 
     def _collect_files(self) -> None:
         self.files: List[str] = os.listdir(self.file_path)
 
+    def _create_tasks(self) -> None:
+        map_tasks: List[task_queue_pb2.Task] = []
+        reduce_tasks: List[task_queue_pb2.Task] = []
+
+        files_by_map_task: List[List[str]] = [[] for _ in range(self.num_of_map_tasks)]
+        for index, filename in enumerate(self.files):
+            task_id = (
+                index % self.num_of_map_tasks
+            )  # keep task id in range(0, num_of_map_tasks)
+            files_by_map_task[task_id].append(
+                filename
+            )  # filenames get assigned to map tasks sequentially
+
+        for task_id in range(self.num_of_map_tasks):
+            map_task: task_queue_pb2.Task = task_queue_pb2.Task(
+                task_id=task_id,
+                type="map",
+                files=files_by_map_task[task_id],
+            )
+            map_tasks.append(map_task)
+
+        # TODO: Implement creating reduce tasks
+
+        self.tasks.extend(map_tasks)
+        self.tasks.extend(reduce_tasks)
+        pprint.pp(map_tasks)  # for testing
+
     def run(self) -> None:
-        # Initialize some dummy tasks for testing
-        tasks = [
-            task_queue_pb2.Task(task_id=1, type="map", files=[]),
-            task_queue_pb2.Task(task_id=2, type="map", files=[]),
-            task_queue_pb2.Task(task_id=3, type="reduce", files=[]),
-            task_queue_pb2.Task(task_id=4, type="map", files=[]),
-            task_queue_pb2.Task(task_id=5, type="map", files=[]),
-            task_queue_pb2.Task(task_id=6, type="reduce", files=[]),
-            task_queue_pb2.Task(task_id=7, type="map", files=[]),
-            task_queue_pb2.Task(task_id=8, type="map", files=[]),
-            task_queue_pb2.Task(task_id=9, type="reduce", files=[]),
-        ]
-        for task in tasks:
+        self._collect_files()
+        self._create_tasks()
+        for task in self.tasks:
             self.task_queue_servicer.task_queue.put(task)
 
         task_queue_pb2_grpc.add_TaskQueueServicer_to_server(
