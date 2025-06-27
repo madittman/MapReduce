@@ -12,8 +12,12 @@ from protos import task_queue_pb2, task_queue_pb2_grpc
 class TaskQueueServicer(task_queue_pb2_grpc.TaskQueueServicer):
     task_queue: Queue[task_queue_pb2.Task] = Queue()
 
-    def GetTask(self, request, context):
-        worker_id = request.worker_id
+    def GetTask(
+        self, request: task_queue_pb2.Request, context: grpc._server._Context
+    ) -> None:
+        print(type(request))
+        print(type(context))
+        worker_id: int = request.worker_id
         print("worker_id", worker_id)
         if not self.task_queue.empty():
             return self.task_queue.get()

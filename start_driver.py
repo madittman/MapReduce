@@ -8,7 +8,7 @@ if len(sys.argv) < 4:
 if len(sys.argv[2]) < len(sys.argv[1]):
     raise TypeError("Number of reduce tasks cannot be less than number of map tasks")
 
-driver = Driver(
+driver: Driver = Driver(
     num_of_map_tasks=sys.argv[1],
     num_of_reduce_tasks=sys.argv[2],
     file_path=sys.argv[3],
