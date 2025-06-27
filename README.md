@@ -20,8 +20,9 @@ For example:
 make
 python start_driver.py 6 4 ./test_files
 ```
+This starts the driver creating 6 map tasks and 4 reduce tasks based on all files in the folder _test_files_.
 
-In others shells, you can now start an arbitrary number of workers that will all process the tasks split by the driver:
+In others shells, you can now start an arbitrary number of workers that will all fetch a task one by one and process it:
 ```sh
 python start_worker.py
 ```
