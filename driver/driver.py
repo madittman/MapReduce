@@ -3,7 +3,7 @@ import os
 from concurrent import futures
 from dataclasses import dataclass, field
 from queue import Queue
-from typing import List
+from typing import Any, List
 
 from protos import task_queue_pb2, task_queue_pb2_grpc
 
@@ -12,13 +12,9 @@ from protos import task_queue_pb2, task_queue_pb2_grpc
 class TaskQueueServicer(task_queue_pb2_grpc.TaskQueueServicer):
     task_queue: Queue[task_queue_pb2.Task] = Queue()
 
-    def GetTask(
-        self, request: task_queue_pb2.Request, context: grpc._server._Context
-    ) -> None:
-        print(type(request))
-        print(type(context))
+    def GetTask(self, request: task_queue_pb2.Request, context: Any) -> None:
         worker_id: int = request.worker_id
-        print("worker_id", worker_id)
+        print("worker_id", worker_id)  # for testing
         if not self.task_queue.empty():
             return self.task_queue.get()
         return None

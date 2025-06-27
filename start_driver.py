@@ -1,16 +1,21 @@
-import sys
+import argparse
 
 from driver.driver import Driver
 
 
-if len(sys.argv) < 4:
-    raise TypeError("Too few arguments")
-if len(sys.argv[2]) < len(sys.argv[1]):
+parser = argparse.ArgumentParser(
+    prog="Driver", description="Create map and reduce tasks for workers"
+)
+parser.add_argument("num_of_map_tasks", type=int, help="Number of map tasks")
+parser.add_argument("num_of_reduce_tasks", type=int, help="Number of reduce tasks")
+parser.add_argument("file_path", type=str, help="File path to look for")
+args = parser.parse_args()
+if args.num_of_reduce_tasks < args.num_of_map_tasks:
     raise TypeError("Number of reduce tasks cannot be less than number of map tasks")
 
 driver: Driver = Driver(
-    num_of_map_tasks=sys.argv[1],
-    num_of_reduce_tasks=sys.argv[2],
-    file_path=sys.argv[3],
+    num_of_map_tasks=args.num_of_reduce_tasks,
+    num_of_reduce_tasks=args.num_of_reduce_tasks,
+    file_path=args.file_path,
 )
 driver.run()
