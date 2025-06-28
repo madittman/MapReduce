@@ -6,16 +6,16 @@ from driver.driver import Driver
 parser = argparse.ArgumentParser(
     prog="Driver", description="Create map and reduce tasks for workers"
 )
-parser.add_argument("num_of_map_tasks", type=int, help="Number of map tasks")
-parser.add_argument("num_of_reduce_tasks", type=int, help="Number of reduce tasks")
-parser.add_argument("file_path", type=str, help="File path to look for")
+parser.add_argument("m", type=int, help="Number of map tasks")
+parser.add_argument("r", type=int, help="Number of reduce tasks")
+parser.add_argument("f", type=str, help="Filepath to look for")
 args = parser.parse_args()
-if args.num_of_map_tasks < args.num_of_reduce_tasks:
+if args.m < args.r:
     raise TypeError("Number of map tasks cannot be less than number of reduce tasks")
 
 driver: Driver = Driver(
-    num_of_map_tasks=args.num_of_map_tasks,
-    num_of_reduce_tasks=args.num_of_reduce_tasks,
-    file_path=args.file_path,
+    num_of_map_tasks=args.m,
+    num_of_reduce_tasks=args.r,
+    filepath=args.f,
 )
 driver.run()

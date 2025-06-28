@@ -25,7 +25,7 @@ class TaskQueueServicer(task_queue_pb2_grpc.TaskQueueServicer):
 class Driver:
     num_of_map_tasks: int
     num_of_reduce_tasks: int
-    file_path: str
+    filepath: str
 
     server: grpc._server._Server = grpc.server(
         futures.ThreadPoolExecutor(max_workers=10)
@@ -35,7 +35,7 @@ class Driver:
     tasks: List[task_queue_pb2.Task] = field(default_factory=list)
 
     def _collect_files(self) -> None:
-        self.files: List[str] = os.listdir(self.file_path)
+        self.files: List[str] = os.listdir(self.filepath)
 
     def _create_tasks(self) -> None:
         map_tasks: List[task_queue_pb2.Task] = []
