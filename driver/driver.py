@@ -48,11 +48,9 @@ class Driver:
         except TypeError as error:
             self.error = error
             print("TypeError:", self.error)
-            # exit(1)
         except FileNotFoundError as error:
             self.error = error
             print("FileNotFoundError:", self.error)
-            # exit(1)
         except Exception as error:
             self.error = error
             print("Unknown Exception", error)
