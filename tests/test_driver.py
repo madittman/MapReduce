@@ -87,3 +87,31 @@ def test_create_tasks_9_3():
         type="map",
         files=[],
     )
+
+
+def test_type_error():
+    """3 Map Tasks, 4 Reduce Tasks (Throws exception)"""
+    test_driver: driver.Driver = driver.Driver(
+        num_of_map_tasks=3,
+        num_of_reduce_tasks=4,
+        filepath=FILEPATH,
+    )
+    assert isinstance(test_driver.error, TypeError)
+    assert (
+        str(test_driver.error)
+        == "Number of map tasks cannot be less than number of reduce tasks"
+    )
+
+
+def test_file_not_found_error():
+    """Set invalid filepath"""
+    test_driver: driver.Driver = driver.Driver(
+        num_of_map_tasks=3,
+        num_of_reduce_tasks=3,
+        filepath="./invalid_path",
+    )
+    assert isinstance(test_driver.error, FileNotFoundError)
+    assert (
+        str(test_driver.error)
+        == "[Errno 2] No such file or directory: './invalid_path'"
+    )

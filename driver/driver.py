@@ -3,7 +3,7 @@ import os
 from concurrent import futures
 from dataclasses import dataclass, field
 from queue import Queue
-from typing import Any, List
+from typing import Any, List, Union
 
 from protos import task_queue_pb2, task_queue_pb2_grpc
 
@@ -34,9 +34,29 @@ class Driver:
     tasks: List[task_queue_pb2.Task] = field(
         default_factory=list
     )  # set in _create_tasks method
+    error: Union[Exception, None] = field(
+        init=False, default=None
+    )  # set when error occurs in __post_init__
 
     def __post_init__(self):
-        self.files = os.listdir(self.filepath)
+        try:
+            if self.num_of_map_tasks < self.num_of_reduce_tasks:
+                raise TypeError(
+                    "Number of map tasks cannot be less than number of reduce tasks"
+                )
+            self.files = os.listdir(self.filepath)
+        except TypeError as error:
+            self.error = error
+            print("TypeError:", self.error)
+            # exit(1)
+        except FileNotFoundError as error:
+            self.error = error
+            print("FileNotFoundError:", self.error)
+            # exit(1)
+        except Exception as error:
+            self.error = error
+            print("Unknown Exception", error)
+            raise
 
     def _create_tasks(self) -> None:
         """Create map and reduce tasks based on list of files."""
