@@ -1,4 +1,5 @@
 import argparse
+import os
 
 from driver.driver import Driver
 
@@ -16,6 +17,6 @@ if args.m < args.r:
 driver: Driver = Driver(
     num_of_map_tasks=args.m,
     num_of_reduce_tasks=args.r,
-    filepath=args.f,
+    filepath=os.path.abspath(args.f),  # convert to absolute path
 )
 driver.run()

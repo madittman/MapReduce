@@ -1,6 +1,5 @@
 import grpc
 import os
-import pprint
 from concurrent import futures
 from dataclasses import dataclass, field
 from queue import Queue
@@ -31,13 +30,16 @@ class Driver:
         futures.ThreadPoolExecutor(max_workers=10)
     )
     task_queue_servicer: TaskQueueServicer = field(default_factory=TaskQueueServicer)
-    files: List[str] = field(init=False)
-    tasks: List[task_queue_pb2.Task] = field(default_factory=list)
+    files: List[str] = field(init=False)  # set in __post_init__ method
+    tasks: List[task_queue_pb2.Task] = field(
+        default_factory=list
+    )  # set in _create_tasks method
 
-    def _collect_files(self) -> None:
-        self.files: List[str] = os.listdir(self.filepath)
+    def __post_init__(self):
+        self.files = os.listdir(self.filepath)
 
     def _create_tasks(self) -> None:
+        """Create map and reduce tasks based on list of files."""
         map_tasks: List[task_queue_pb2.Task] = []
         reduce_tasks: List[task_queue_pb2.Task] = []
 
@@ -62,10 +64,9 @@ class Driver:
 
         self.tasks.extend(map_tasks)
         self.tasks.extend(reduce_tasks)
-        pprint.pp(map_tasks)  # for testing
 
     def run(self) -> None:
-        self._collect_files()
+        """Create map and reduce tasks and put them into the task queue."""
         self._create_tasks()
         for task in self.tasks:
             self.task_queue_servicer.task_queue.put(task)
@@ -77,6 +78,5 @@ class Driver:
         self.server.start()
         while not self.task_queue_servicer.task_queue.empty():
             self.server.wait_for_termination(timeout=5)
-
         print("Driver finished")
         self.server.stop(grace=0)
