@@ -1,5 +1,6 @@
 import grpc
 import os
+import pprint
 from concurrent import futures
 from dataclasses import dataclass, field
 from queue import Queue
@@ -61,24 +62,46 @@ class Driver:
         map_tasks: List[task_queue_pb2.Task] = []
         reduce_tasks: List[task_queue_pb2.Task] = []
 
+        # Create map tasks
         files_by_map_task: List[List[str]] = [[] for _ in range(self.num_of_map_tasks)]
         for index, filename in enumerate(self.files):
-            task_id = (
+            map_task_id = (
                 index % self.num_of_map_tasks
             )  # keep task id in range(0, num_of_map_tasks)
-            files_by_map_task[task_id].append(
+            files_by_map_task[map_task_id].append(
                 filename
             )  # filenames get assigned to map tasks sequentially
 
-        for task_id in range(self.num_of_map_tasks):
+        for map_task_id in range(self.num_of_map_tasks):
             map_task: task_queue_pb2.Task = task_queue_pb2.Task(
-                task_id=task_id,
+                task_id=map_task_id,
                 type="map",
-                files=files_by_map_task[task_id],
+                files=files_by_map_task[map_task_id],
             )
             map_tasks.append(map_task)
 
-        # TODO: Implement creating reduce tasks
+        # Create reduce tasks
+        intermediate_files: List[str] = []
+        for map_task_id in range(self.num_of_map_tasks):
+            for bucket_id in range(self.num_of_reduce_tasks):
+                intermediate_filename = f"mr-{map_task_id}-{bucket_id}"
+                intermediate_files.append(intermediate_filename)
+
+        files_by_reduce_task: List[List[str]] = [
+            [] for _ in range(self.num_of_map_tasks)
+        ]
+        for index, intermediate_filename in enumerate(intermediate_files):
+            reduce_task_id = index % self.num_of_reduce_tasks
+            files_by_reduce_task[reduce_task_id].append(intermediate_filename)
+
+        for reduce_task_id in range(self.num_of_reduce_tasks):
+            reduce_task: task_queue_pb2.Task = task_queue_pb2.Task(
+                task_id=reduce_task_id
+                + self.num_of_map_tasks,  # task ids are incremented
+                type="reduce",
+                files=files_by_reduce_task[reduce_task_id],
+            )
+            reduce_tasks.append(reduce_task)
 
         self.tasks.extend(map_tasks)
         self.tasks.extend(reduce_tasks)
@@ -86,6 +109,9 @@ class Driver:
     def run(self) -> None:
         """Create map and reduce tasks and put them into the task queue."""
         self._create_tasks()
+
+        pprint.pp(self.tasks)  # for testing
+
         for task in self.tasks:
             self.task_queue_servicer.task_queue.put(task)
 
