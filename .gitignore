@@ -3,3 +3,4 @@
 .idea/
 __pycache__/
 protos/*.py
+!protos/__init__.py
