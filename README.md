@@ -20,9 +20,16 @@ For example:
 make
 python start_driver.py 6 4 tests/data/
 ```
-This starts the driver creating 6 map tasks and 4 reduce tasks based on all files in the folder _tests/data/_.
+This starts the driver creating _6 map tasks_ and _4 reduce tasks_ based on all files in the folder _tests/data/_.
 
 In others shells, you can now start an arbitrary number of workers that will all fetch a task one by one and process it:
 ```sh
 python start_worker.py
+```
+
+## Run Tests
+
+Run the tests by calling _pytest_:
+```sh
+pytest tests/test_driver.py
 ```
