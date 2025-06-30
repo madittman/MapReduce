@@ -6,7 +6,7 @@ from protos import task_queue_pb2
 
 
 FILEPATH: str = os.path.abspath("./tests/data/")
-FILES: List[str] = [
+INPUT_FILES: List[str] = [
     "pg-tom_sawyer.txt",
     "pg-frankenstein.txt",
     "pg-sherlock_holmes.txt",
@@ -25,14 +25,24 @@ def test_create_tasks_1_1():
         num_of_reduce_tasks=1,
         filepath=FILEPATH,
     )
-    test_driver._create_tasks()
+    test_driver._create_map_tasks()
+    test_driver._create_reduce_tasks()
 
     tasks: List[task_queue_pb2.Task] = test_driver.tasks
-    assert len(tasks) == 1
+    assert len(tasks) == 2
+
+    # Assert map tasks
     assert tasks[0] == task_queue_pb2.Task(
         task_id=0,
         type="map",
-        files=FILES,
+        files=INPUT_FILES,
+    )
+
+    # Assert reduce tasks
+    assert tasks[1] == task_queue_pb2.Task(
+        task_id=1,
+        type="reduce",
+        files=["mr-0-0"],
     )
 
 
@@ -43,24 +53,40 @@ def test_create_tasks_3_2():
         num_of_reduce_tasks=2,
         filepath=FILEPATH,
     )
-    test_driver._create_tasks()
+    test_driver._create_map_tasks()
+    test_driver._create_reduce_tasks()
 
     tasks: List[task_queue_pb2.Task] = test_driver.tasks
-    assert len(tasks) == 3
+    assert len(tasks) == 5
+
+    # Assert map tasks
     assert tasks[0] == task_queue_pb2.Task(
         task_id=0,
         type="map",
-        files=[FILES[0], FILES[3], FILES[6]],
+        files=INPUT_FILES[0:3],
     )
     assert tasks[1] == task_queue_pb2.Task(
         task_id=1,
         type="map",
-        files=[FILES[1], FILES[4], FILES[7]],
+        files=INPUT_FILES[3:6],
     )
     assert tasks[2] == task_queue_pb2.Task(
         task_id=2,
         type="map",
-        files=[FILES[2], FILES[5]],
+        files=INPUT_FILES[6:8],
+    )
+
+    # Assert reduce tasks
+    assert tasks[3] == task_queue_pb2.Task(
+        task_id=3,
+        type="reduce",
+        files=["mr-0-0", "mr-0-1", "mr-1-0", "mr-1-1"],
+    )
+
+    assert tasks[4] == task_queue_pb2.Task(
+        task_id=4,
+        type="reduce",
+        files=["mr-2-0", "mr-2-1"],
     )
 
 
@@ -71,11 +97,14 @@ def test_create_tasks_9_3():
         num_of_reduce_tasks=3,
         filepath=FILEPATH,
     )
-    test_driver._create_tasks()
+    test_driver._create_map_tasks()
+    test_driver._create_reduce_tasks()
 
     tasks: List[task_queue_pb2.Task] = test_driver.tasks
-    assert len(tasks) == 9
-    for index, file in enumerate(FILES):
+    assert len(tasks) == 12
+
+    # Assert map tasks
+    for index, file in enumerate(INPUT_FILES):
         assert tasks[index] == task_queue_pb2.Task(
             task_id=index,
             type="map",
@@ -86,6 +115,53 @@ def test_create_tasks_9_3():
         task_id=8,
         type="map",
         files=[],
+    )
+
+    # Assert reduce tasks
+    assert tasks[9] == task_queue_pb2.Task(
+        task_id=9,
+        type="reduce",
+        files=[
+            "mr-0-0",
+            "mr-0-1",
+            "mr-0-2",
+            "mr-1-0",
+            "mr-1-1",
+            "mr-1-2",
+            "mr-2-0",
+            "mr-2-1",
+            "mr-2-2",
+        ],
+    )
+    assert tasks[10] == task_queue_pb2.Task(
+        task_id=10,
+        type="reduce",
+        files=[
+            "mr-3-0",
+            "mr-3-1",
+            "mr-3-2",
+            "mr-4-0",
+            "mr-4-1",
+            "mr-4-2",
+            "mr-5-0",
+            "mr-5-1",
+            "mr-5-2",
+        ],
+    )
+    assert tasks[11] == task_queue_pb2.Task(
+        task_id=11,
+        type="reduce",
+        files=[
+            "mr-6-0",
+            "mr-6-1",
+            "mr-6-2",
+            "mr-7-0",
+            "mr-7-1",
+            "mr-7-2",
+            "mr-8-0",
+            "mr-8-1",
+            "mr-8-2",
+        ],
     )
 
 

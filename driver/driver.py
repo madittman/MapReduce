@@ -1,4 +1,5 @@
 import grpc
+import math
 import os
 import pprint
 from concurrent import futures
@@ -19,6 +20,7 @@ class TaskQueueServicer(task_queue_pb2_grpc.TaskQueueServicer):
         if not self.task_queue.empty():
             return self.task_queue.get()
         return None
+        # all files from the same map task
 
 
 @dataclass
@@ -31,21 +33,36 @@ class Driver:
         futures.ThreadPoolExecutor(max_workers=10)
     )
     task_queue_servicer: TaskQueueServicer = field(default_factory=TaskQueueServicer)
-    files: List[str] = field(init=False)  # set in __post_init__ method
+    input_files: List[str] = field(init=False)  # set in __post_init__ method
+    intermediate_files: List[str] = field(init=False)  # set in __post_init__ method
     tasks: List[task_queue_pb2.Task] = field(
-        default_factory=list
-    )  # set in _create_tasks method
+        init=False, default_factory=list
+    )  # all map and reduce tasks
     error: Union[Exception, None] = field(
         init=False, default=None
     )  # set when error occurs in __post_init__
 
+    # all files from the same map task
     def __post_init__(self):
         try:
             if self.num_of_map_tasks < self.num_of_reduce_tasks:
                 raise TypeError(
                     "Number of map tasks cannot be less than number of reduce tasks"
                 )
-            self.files = os.listdir(self.filepath)
+            # Get list of input files
+            self.input_files = os.listdir(self.filepath)
+
+            # Create list of intermediate files
+            # Intermediate files have the format "mr-<map_task_id>-<bucket_id>"
+            # (bucket ids are the ids for the reduce tasks)
+            self.intermediate_files = []
+            for map_task_id in range(self.num_of_map_tasks):
+                files_by_map_task_id: List[str] = [
+                    f"mr-{map_task_id}-{bucket_id}"
+                    for bucket_id in range(self.num_of_reduce_tasks)
+                ]
+                self.intermediate_files.extend(files_by_map_task_id)
+
         except TypeError as error:
             self.error = error
             print("TypeError:", self.error)
@@ -57,21 +74,45 @@ class Driver:
             print("Unknown Exception", error)
             raise
 
-    def _create_tasks(self) -> None:
-        """Create map and reduce tasks based on list of files."""
+    @staticmethod
+    def _distribute_files_to_tasks(
+        files: List[List[str]], num_of_tasks: int, max_num_of_files: int
+    ) -> List[List[str]]:
+        """
+        Distribute files among tasks.
+        max_num_of_files is the maximum number of files for each task.
+        """
+        files_by_task: List[List[str]] = [[] for _ in range(num_of_tasks)]
+        start_index: int = 0
+        for idx in range(num_of_tasks):
+            files_by_task[idx].extend(
+                files[start_index : start_index + max_num_of_files]
+            )
+            start_index += max_num_of_files
+        return files_by_task
+
+    def _get_files_by_map_task(self) -> List[List[str]]:
+        """Return list of files by map task id."""
+        max_num_of_files: int = math.ceil(len(self.input_files) / self.num_of_map_tasks)
+        return self._distribute_files_to_tasks(
+            self.input_files, self.num_of_map_tasks, max_num_of_files
+        )
+
+    def _get_files_by_bucket(self) -> List[List[str]]:
+        """Return list of files by reduce task (bucket)."""
+        # A file packet are all files from the same map task, e.g. ["mr-0-1", "mr-0-2", "mr-0-3"]
+        max_num_of_file_packets = math.ceil(
+            self.num_of_map_tasks / self.num_of_reduce_tasks
+        )
+        max_num_of_files = max_num_of_file_packets * self.num_of_reduce_tasks
+        return self._distribute_files_to_tasks(
+            self.intermediate_files, self.num_of_reduce_tasks, max_num_of_files
+        )
+
+    def _create_map_tasks(self) -> None:
+        """Create map and tasks based on list of input files."""
         map_tasks: List[task_queue_pb2.Task] = []
-        reduce_tasks: List[task_queue_pb2.Task] = []
-
-        # Create map tasks
-        files_by_map_task: List[List[str]] = [[] for _ in range(self.num_of_map_tasks)]
-        for index, filename in enumerate(self.files):
-            map_task_id = (
-                index % self.num_of_map_tasks
-            )  # keep task id in range(0, num_of_map_tasks)
-            files_by_map_task[map_task_id].append(
-                filename
-            )  # filenames get assigned to map tasks sequentially
-
+        files_by_map_task: List[List[str]] = self._get_files_by_map_task()
         for map_task_id in range(self.num_of_map_tasks):
             map_task: task_queue_pb2.Task = task_queue_pb2.Task(
                 task_id=map_task_id,
@@ -79,36 +120,25 @@ class Driver:
                 files=files_by_map_task[map_task_id],
             )
             map_tasks.append(map_task)
+        self.tasks.extend(map_tasks)
 
-        # Create reduce tasks
-        intermediate_files: List[str] = []
-        for map_task_id in range(self.num_of_map_tasks):
-            for bucket_id in range(self.num_of_reduce_tasks):
-                intermediate_filename = f"mr-{map_task_id}-{bucket_id}"
-                intermediate_files.append(intermediate_filename)
-
-        files_by_reduce_task: List[List[str]] = [
-            [] for _ in range(self.num_of_map_tasks)
-        ]
-        for index, intermediate_filename in enumerate(intermediate_files):
-            reduce_task_id = index % self.num_of_reduce_tasks
-            files_by_reduce_task[reduce_task_id].append(intermediate_filename)
-
-        for reduce_task_id in range(self.num_of_reduce_tasks):
+    def _create_reduce_tasks(self) -> None:
+        """Create reduce tasks based on list of intermediate files."""
+        reduce_tasks: List[task_queue_pb2.Task] = []
+        files_by_bucket: List[List[str]] = self._get_files_by_bucket()
+        for bucket_id in range(self.num_of_reduce_tasks):
             reduce_task: task_queue_pb2.Task = task_queue_pb2.Task(
-                task_id=reduce_task_id
-                + self.num_of_map_tasks,  # task ids are incremented
+                task_id=bucket_id + self.num_of_map_tasks,  # task ids are incremented
                 type="reduce",
-                files=files_by_reduce_task[reduce_task_id],
+                files=files_by_bucket[bucket_id],
             )
             reduce_tasks.append(reduce_task)
-
-        self.tasks.extend(map_tasks)
         self.tasks.extend(reduce_tasks)
 
     def run(self) -> None:
         """Create map and reduce tasks and put them into the task queue."""
-        self._create_tasks()
+        self._create_map_tasks()
+        self._create_reduce_tasks()
 
         pprint.pp(self.tasks)  # for testing
 
