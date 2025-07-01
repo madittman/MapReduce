@@ -16,6 +16,7 @@ INPUT_FILES: List[str] = [
     "pg-being_ernest.txt",
     "pg-grimm.txt",
 ]
+INPUT_FILES = [os.path.join(FILEPATH, input_file) for input_file in INPUT_FILES]
 
 
 def test_create_tasks_1_1():

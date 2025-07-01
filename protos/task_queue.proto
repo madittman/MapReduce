@@ -4,6 +4,7 @@ package task_queue;
 
 service TaskQueue {
   rpc GetTask (Request) returns (Task);
+  rpc GetNumberOfBuckets (Request) returns (NumberOfBuckets);  // number of buckets is number of reduce tasks
 }
 
 message Request {
@@ -14,4 +15,8 @@ message Task {
     int32 task_id = 1;
     string type = 2;  // either "map" or "reduce"
     repeated string files = 3;
+}
+
+message NumberOfBuckets {
+  int32 num_of_buckets = 1;
 }

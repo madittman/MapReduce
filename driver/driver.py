@@ -5,22 +5,31 @@ import pprint
 from concurrent import futures
 from dataclasses import dataclass, field
 from queue import Queue
-from typing import Any, List, Union
+from typing import Any, List, Optional, Union
 
 from protos import task_queue_pb2, task_queue_pb2_grpc
 
 
 @dataclass
 class TaskQueueServicer(task_queue_pb2_grpc.TaskQueueServicer):
+    num_of_buckets: int
     task_queue: Queue[task_queue_pb2.Task] = Queue()
 
-    def GetTask(self, request: task_queue_pb2.Request, context: Any) -> None:
-        worker_id: int = request.worker_id
-        print("worker_id", worker_id)  # for testing
+    def GetTask(
+        self, request: task_queue_pb2.Request, context: Any
+    ) -> Optional[task_queue_pb2.Task]:
+        print(f"Worker {request.worker_id} requesting task")  # for testing
         if not self.task_queue.empty():
             return self.task_queue.get()
         return None
-        # all files from the same map task
+
+    def GetNumberOfBuckets(
+        self, request: task_queue_pb2.Request, context: Any
+    ) -> task_queue_pb2.NumberOfBuckets:
+        print(f"Worker {request.worker_id} requesting number of buckets")  # for testing
+        return task_queue_pb2.NumberOfBuckets(
+            num_of_buckets=self.num_of_buckets,
+        )
 
 
 @dataclass
@@ -32,9 +41,9 @@ class Driver:
     server: grpc._server._Server = grpc.server(
         futures.ThreadPoolExecutor(max_workers=10)
     )
-    task_queue_servicer: TaskQueueServicer = field(default_factory=TaskQueueServicer)
-    input_files: List[str] = field(init=False)  # set in __post_init__ method
-    intermediate_files: List[str] = field(init=False)  # set in __post_init__ method
+    task_queue_servicer: TaskQueueServicer = field(init=False)
+    input_files: List[str] = field(init=False)
+    intermediate_files: List[str] = field(init=False)
     error: Union[Exception, None] = field(
         init=False, default=None
     )  # set when error occurs in __post_init__
@@ -48,8 +57,12 @@ class Driver:
                 raise TypeError(
                     "Number of map tasks cannot be less than number of reduce tasks"
                 )
-            # Get list of input files
+            # Get list of input files by absolute paths
             self.input_files = os.listdir(self.filepath)
+            self.input_files = [
+                os.path.join(self.filepath, input_file)
+                for input_file in self.input_files
+            ]
 
             # Create list of intermediate files
             # Intermediate files have the format "mr-<map_task_id>-<bucket_id>"
@@ -61,6 +74,11 @@ class Driver:
                     for bucket_id in range(self.num_of_reduce_tasks)
                 ]
                 self.intermediate_files.extend(files_by_map_task_id)
+
+            # Create grpc TaskQueueServicer
+            self.task_queue_servicer: TaskQueueServicer = TaskQueueServicer(
+                num_of_buckets=self.num_of_reduce_tasks
+            )
 
         except TypeError as error:
             self.error = error
@@ -147,8 +165,8 @@ class Driver:
 
     def _stop_server(self) -> None:
         """Stop the grpc TaskQueueServicer."""
-        print("Driver finished")
         self.server.stop(grace=0)
+        print("Driver finished")
 
     def run(self) -> None:
         """
