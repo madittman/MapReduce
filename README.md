@@ -3,7 +3,7 @@ This is a simple implementation of distributed program using [MapReduce](https:/
 <br>
 The whole task can be found [here](map-reduce-task.pdf).
 
-The code is written and tested on **[Python 3.13.5](https://www.python.org/downloads/release/python-3135/)**.
+The code is written and tested in [Python 3.13.5](https://www.python.org/downloads/release/python-3135/).
 
 ## Quick Start
 
