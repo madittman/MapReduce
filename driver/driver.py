@@ -35,9 +35,6 @@ class Driver:
     task_queue_servicer: TaskQueueServicer = field(default_factory=TaskQueueServicer)
     input_files: List[str] = field(init=False)  # set in __post_init__ method
     intermediate_files: List[str] = field(init=False)  # set in __post_init__ method
-    tasks: List[task_queue_pb2.Task] = field(
-        init=False, default_factory=list
-    )  # all map and reduce tasks
     error: Union[Exception, None] = field(
         init=False, default=None
     )  # set when error occurs in __post_init__
@@ -111,8 +108,9 @@ class Driver:
             self.intermediate_files, self.num_of_reduce_tasks, max_num_of_files
         )
 
-    def _create_map_tasks(self) -> None:
-        """Create map and tasks based on list of input files."""
+    def _get_map_tasks(self) -> List[task_queue_pb2.Task]:
+        """Return map tasks based on list of input files."""
+        print("Creating map tasks...")
         map_tasks: List[task_queue_pb2.Task] = []
         files_by_map_task: List[List[str]] = self._get_files_by_map_task()
         for map_task_id in range(self.num_of_map_tasks):
@@ -122,10 +120,11 @@ class Driver:
                 files=files_by_map_task[map_task_id],
             )
             map_tasks.append(map_task)
-        self.tasks.extend(map_tasks)
+        return map_tasks
 
-    def _create_reduce_tasks(self) -> None:
-        """Create reduce tasks based on list of intermediate files."""
+    def _get_reduce_tasks(self) -> List[task_queue_pb2.Task]:
+        """Return reduce tasks based on list of intermediate files."""
+        print("Creating reduce tasks...")
         reduce_tasks: List[task_queue_pb2.Task] = []
         files_by_bucket: List[List[str]] = self._get_files_by_bucket()
         for bucket_id in range(self.num_of_reduce_tasks):
@@ -135,24 +134,41 @@ class Driver:
                 files=files_by_bucket[bucket_id],
             )
             reduce_tasks.append(reduce_task)
-        self.tasks.extend(reduce_tasks)
+        return reduce_tasks
 
-    def run(self) -> None:
-        """Create map and reduce tasks and put them into the task queue."""
-        self._create_map_tasks()
-        self._create_reduce_tasks()
-
-        pprint.pp(self.tasks)  # for testing
-
-        for task in self.tasks:
-            self.task_queue_servicer.task_queue.put(task)
-
+    def _start_server(self) -> None:
+        """Start the grpc TaskQueueServicer."""
+        print("Starting server...")
         task_queue_pb2_grpc.add_TaskQueueServicer_to_server(
             self.task_queue_servicer, self.server
         )
         self.server.add_insecure_port("[::]:50051")
         self.server.start()
-        while not self.task_queue_servicer.task_queue.empty():
-            self.server.wait_for_termination(timeout=5)
+
+    def _stop_server(self) -> None:
+        """Stop the grpc TaskQueueServicer."""
         print("Driver finished")
         self.server.stop(grace=0)
+
+    def run(self) -> None:
+        """
+        Start grpc server, create map tasks and put them into the task queue to be fetched by a worker.
+        When all map tasks are fetched, create reduce tasks and put them into the task queue.
+        The driver finishes when all reduce tasks are fetched.
+        """
+        self._start_server()
+
+        map_tasks: List[task_queue_pb2.Task] = self._get_map_tasks()
+        pprint.pp(map_tasks)  # for testing
+
+        reduce_tasks: List[task_queue_pb2.Task] = self._get_reduce_tasks()
+        pprint.pp(reduce_tasks)  # for testing
+
+        for task in [*map_tasks, *reduce_tasks]:
+            self.task_queue_servicer.task_queue.put(task)
+
+        while not self.task_queue_servicer.task_queue.empty():
+            self.server.wait_for_termination(timeout=5)
+        print("All tasks assigned")
+
+        self._stop_server()
