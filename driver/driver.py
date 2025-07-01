@@ -4,32 +4,10 @@ import os
 import pprint
 from concurrent import futures
 from dataclasses import dataclass, field
-from queue import Queue
-from typing import Any, List, Optional, Union
+from typing import List, Union
 
+from driver.task_queue_servicer import TaskQueueServicer
 from protos import task_queue_pb2, task_queue_pb2_grpc
-
-
-@dataclass
-class TaskQueueServicer(task_queue_pb2_grpc.TaskQueueServicer):
-    num_of_buckets: int
-    task_queue: Queue[task_queue_pb2.Task] = Queue()
-
-    def GetTask(
-        self, request: task_queue_pb2.Request, context: Any
-    ) -> Optional[task_queue_pb2.Task]:
-        print(f"Worker {request.worker_id} requesting task")  # for testing
-        if not self.task_queue.empty():
-            return self.task_queue.get()
-        return None
-
-    def GetNumberOfBuckets(
-        self, request: task_queue_pb2.Request, context: Any
-    ) -> task_queue_pb2.NumberOfBuckets:
-        print(f"Worker {request.worker_id} requesting number of buckets")  # for testing
-        return task_queue_pb2.NumberOfBuckets(
-            num_of_buckets=self.num_of_buckets,
-        )
 
 
 @dataclass

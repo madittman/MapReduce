@@ -32,8 +32,10 @@ class Worker:
         return words_by_count
 
     def _process_map_task(self, task_id: int, files: str) -> None:
+        """Count words in each file and write <word count> to intermediate files."""
         print(f"Processing map task, task_id = {task_id}, files = {files}")
         sleep(2)  # for testing
+
         words_by_count: Dict[str, int] = self._get_words_by_count(files)
 
         # Divide words_by_count further into buckets
