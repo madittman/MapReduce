@@ -45,6 +45,8 @@ class Driver:
     # all files from the same map task
     def __post_init__(self):
         try:
+            if self.num_of_map_tasks < 1 or self.num_of_reduce_tasks < 1:
+                raise TypeError("Number of map and reduce tasks cannot be less than 1")
             if self.num_of_map_tasks < self.num_of_reduce_tasks:
                 raise TypeError(
                     "Number of map tasks cannot be less than number of reduce tasks"
