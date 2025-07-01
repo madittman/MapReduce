@@ -4,3 +4,5 @@
 __pycache__/
 protos/*.py
 !protos/__init__.py
+
+intermediate_files
