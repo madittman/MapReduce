@@ -18,13 +18,15 @@ f = filepath to look for_
 For example:
 ```sh
 make
-python start_driver.py 6 4 tests/data/
+./start_driver.sh 6 4 tests/data/
 ```
 This starts the driver creating _6 map tasks_ and _4 reduce tasks_ based on all files in the folder _tests/data/_.
 
-In others shells, you can now start an arbitrary number of workers that will all fetch a task one by one and process it:
+In another shell, you can now start an arbitrary number of workers that will all fetch a task one by one and process it.
+<br>
+For example, this will start 3 different worker processes:
 ```sh
-python start_worker.py
+./start_worker.sh 3
 ```
 
 ## Run Tests
