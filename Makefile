@@ -5,6 +5,7 @@ install_requirements:
 	pip install -r requirements.txt
 
 clean:
+	rm -rf intermediate_files
 	rm -rf __pycache__
 	rm -rf */__pycache__
 	rm -f protos/task_queue_pb2.py protos/task_queue_pb2_grpc.py

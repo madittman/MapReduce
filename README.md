@@ -35,3 +35,11 @@ Run the tests by calling _pytest_:
 ```sh
 pytest tests/test_driver.py
 ```
+
+## Clean Project
+
+To start a clean project from scratch, run
+```sh
+make clean
+```
+This deletes all compiled proto files, pycaches and the _intermediate_files_ folder that is created by the workers.
