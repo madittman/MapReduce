@@ -164,7 +164,7 @@ class Driver:
             self.task_queue_servicer.task_queue.put(task)
 
         while not self.task_queue_servicer.task_queue.empty():
-            self.server.wait_for_termination(timeout=5)
+            self.server.wait_for_termination(timeout=1)
         print("All tasks assigned")
 
         self._stop_server()
