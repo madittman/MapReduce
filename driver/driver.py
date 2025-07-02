@@ -26,34 +26,42 @@ class Driver:
         init=False, default=None
     )  # set when error occurs in __post_init__
 
+    def _check_for_arguments(self):
+        """Raise exception if arguments are invalid."""
+        if self.num_of_map_tasks < 1 or self.num_of_reduce_tasks < 1:
+            raise TypeError("Number of map and reduce tasks cannot be less than 1")
+        if self.num_of_map_tasks < self.num_of_reduce_tasks:
+            raise TypeError(
+                "Number of map tasks cannot be less than number of reduce tasks"
+            )
+
+    def _set_absolute_paths(self) -> None:
+        """Set list of input files to their absolute paths."""
+        self.input_files = os.listdir(self.filepath)
+        self.input_files = [
+            os.path.join(self.filepath, input_file) for input_file in self.input_files
+        ]
+
+    def _set_intermediate_files(self) -> None:
+        """
+        Create list of intermediate files.
+        Intermediate files have the format "mr-<map_task_id>-<bucket_id>"
+        (bucket ids are the ids for the reduce tasks)
+        """
+        self.intermediate_files = []
+        for map_task_id in range(self.num_of_map_tasks):
+            files_by_map_task_id: List[str] = [
+                f"mr-{map_task_id}-{bucket_id}"
+                for bucket_id in range(self.num_of_reduce_tasks)
+            ]
+            self.intermediate_files.extend(files_by_map_task_id)
+
     # all files from the same map task
     def __post_init__(self):
         try:
-            if self.num_of_map_tasks < 1 or self.num_of_reduce_tasks < 1:
-                raise TypeError("Number of map and reduce tasks cannot be less than 1")
-            if self.num_of_map_tasks < self.num_of_reduce_tasks:
-                raise TypeError(
-                    "Number of map tasks cannot be less than number of reduce tasks"
-                )
-            # Get list of input files by absolute paths
-            self.input_files = os.listdir(self.filepath)
-            self.input_files = [
-                os.path.join(self.filepath, input_file)
-                for input_file in self.input_files
-            ]
-
-            # Create list of intermediate files
-            # Intermediate files have the format "mr-<map_task_id>-<bucket_id>"
-            # (bucket ids are the ids for the reduce tasks)
-            self.intermediate_files = []
-            for map_task_id in range(self.num_of_map_tasks):
-                files_by_map_task_id: List[str] = [
-                    f"mr-{map_task_id}-{bucket_id}"
-                    for bucket_id in range(self.num_of_reduce_tasks)
-                ]
-                self.intermediate_files.extend(files_by_map_task_id)
-
-            # Create grpc TaskQueueServicer
+            self._check_for_arguments()
+            self._set_absolute_paths()
+            self._set_intermediate_files()
             self.task_queue_servicer: TaskQueueServicer = TaskQueueServicer(
                 num_of_buckets=self.num_of_reduce_tasks
             )
