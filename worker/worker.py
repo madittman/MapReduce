@@ -33,7 +33,9 @@ class Worker:
 
     def _process_map_task(self, task_id: int, files: str) -> None:
         """Count words in each file and write <word count> to intermediate files."""
-        print(f"Processing map task, task_id = {task_id}, files = {files}")
+        print(
+            f"Worker {self.pid}: Processing map task, task_id = {task_id}, files = {files}\n"
+        )
         sleep(2)  # for testing
 
         words_by_count: Dict[str, int] = self._get_words_by_count(files)
@@ -60,7 +62,9 @@ class Worker:
                     file.write(f"{word} {count}\n")
 
     def _process_reduce_task(self, task_id: int, files: str) -> None:
-        print(f"Processing reduce task, task_id = {task_id}, files = {files}")
+        print(
+            f"Worker {self.pid}: Processing reduce task, task_id = {task_id}, files = {files}\n"
+        )
         sleep(2)  # for testing
 
     def run(self) -> None:
