@@ -26,13 +26,24 @@ class Driver:
         init=False, default=None
     )  # set when error occurs in __post_init__
 
-    def _check_for_arguments(self):
+    def _check_for_arguments(self) -> None:
         """Raise exception if arguments are invalid."""
         if self.num_of_map_tasks < 1 or self.num_of_reduce_tasks < 1:
             raise TypeError("Number of map and reduce tasks cannot be less than 1")
         if self.num_of_map_tasks < self.num_of_reduce_tasks:
             raise TypeError(
                 "Number of map tasks cannot be less than number of reduce tasks"
+            )
+
+    @staticmethod
+    def _check_for_intermediate_folder():
+        """
+        Raise exception if intermediate_files folder already exists.
+        This folder needs to be deleted first to keep the project clean.
+        """
+        if os.path.exists("./intermediate_files"):
+            raise FileExistsError(
+                "Folder ./intermediate_files already exists. Please remove it first."
             )
 
     def _set_absolute_paths(self) -> None:
@@ -60,6 +71,7 @@ class Driver:
     def __post_init__(self):
         try:
             self._check_for_arguments()
+            self._check_for_intermediate_folder()
             self._set_absolute_paths()
             self._set_intermediate_files()
             self.task_queue_servicer: TaskQueueServicer = TaskQueueServicer(
