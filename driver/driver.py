@@ -26,6 +26,13 @@ class Driver:
         init=False, default=None
     )  # set when error occurs in __post_init__
 
+    intermediate_path: str = (
+        "./intermediate_files"  # path where workers store intermediate files when processing map tasks
+    )
+    output_path: str = (
+        "./output_files"  # path where workers store output files when processing reduce tasks
+    )
+
     def _check_for_arguments(self) -> None:
         """Raise exception if arguments are invalid."""
         if self.num_of_map_tasks < 1 or self.num_of_reduce_tasks < 1:
@@ -35,15 +42,18 @@ class Driver:
                 "Number of map tasks cannot be less than number of reduce tasks"
             )
 
-    @staticmethod
-    def _check_for_intermediate_folder():
+    def _check_for_folders(self):
         """
-        Raise exception if intermediate_files folder already exists.
-        This folder needs to be deleted first to keep the project clean.
+        Raise exception if intermediate_files or output_files folder already exist.
+        These folders needs to be deleted first to keep the project clean.
         """
-        if os.path.exists("./intermediate_files"):
+        if os.path.exists(self.intermediate_path):
             raise FileExistsError(
-                "Folder ./intermediate_files already exists. Please remove it first."
+                f"Folder {self.intermediate_path} already exists. Please remove it first."
+            )
+        if os.path.exists(self.output_path):
+            raise FileExistsError(
+                f"Folder {self.output_path} already exists. Please remove it first."
             )
 
     def _set_absolute_paths(self) -> None:
@@ -62,7 +72,7 @@ class Driver:
         self.intermediate_files = []
         for map_task_id in range(self.num_of_map_tasks):
             files_by_map_task_id: List[str] = [
-                f"mr-{map_task_id}-{bucket_id}"
+                os.path.join(self.intermediate_path, f"mr-{map_task_id}-{bucket_id}")
                 for bucket_id in range(self.num_of_reduce_tasks)
             ]
             self.intermediate_files.extend(files_by_map_task_id)
@@ -71,7 +81,7 @@ class Driver:
     def __post_init__(self):
         try:
             self._check_for_arguments()
-            self._check_for_intermediate_folder()
+            self._check_for_folders()
             self._set_absolute_paths()
             self._set_intermediate_files()
             self.task_queue_servicer: TaskQueueServicer = TaskQueueServicer(
@@ -145,7 +155,7 @@ class Driver:
         files_by_bucket: List[List[str]] = self._get_files_by_bucket()
         for bucket_id in range(self.num_of_reduce_tasks):
             reduce_task: task_queue_pb2.Task = task_queue_pb2.Task(
-                task_id=bucket_id + self.num_of_map_tasks,  # task ids are incremented
+                task_id=bucket_id,  # bucket id is the task id of the reduce task
                 type="reduce",
                 files=files_by_bucket[bucket_id],
             )
@@ -175,10 +185,10 @@ class Driver:
         self._start_server()
 
         map_tasks: List[task_queue_pb2.Task] = self._get_map_tasks()
-        pprint.pp(map_tasks)  # for testing
+        # pprint.pp(map_tasks)  # for testing
 
         reduce_tasks: List[task_queue_pb2.Task] = self._get_reduce_tasks()
-        pprint.pp(reduce_tasks)  # for testing
+        # pprint.pp(reduce_tasks)  # for testing
 
         for task in [*map_tasks, *reduce_tasks]:
             self.task_queue_servicer.task_queue.put(task)
