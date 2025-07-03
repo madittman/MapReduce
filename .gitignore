@@ -1,8 +1,11 @@
 # created by virtualenv automatically
 .venv/
 .idea/
+.pytest_cache/
 __pycache__/
 protos/*.py
 !protos/__init__.py
 
-intermediate_files
+# Folders created by the workers
+intermediate_files/
+output_files/
