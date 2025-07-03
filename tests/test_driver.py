@@ -40,9 +40,9 @@ def test_create_tasks_1_1():
     reduce_tasks: List[task_queue_pb2.Task] = test_driver._get_reduce_tasks()
     assert len(reduce_tasks) == 1
     assert reduce_tasks[0] == task_queue_pb2.Task(
-        task_id=1,
+        task_id=0,
         type="reduce",
-        files=["mr-0-0"],
+        files=["./intermediate_files/mr-0-0"],
     )
 
 
@@ -77,14 +77,19 @@ def test_create_tasks_3_2():
     reduce_tasks: List[task_queue_pb2.Task] = test_driver._get_reduce_tasks()
     assert len(reduce_tasks) == 2
     assert reduce_tasks[0] == task_queue_pb2.Task(
-        task_id=3,
+        task_id=0,
         type="reduce",
-        files=["mr-0-0", "mr-0-1", "mr-1-0", "mr-1-1"],
+        files=[
+            "./intermediate_files/mr-0-0",
+            "./intermediate_files/mr-0-1",
+            "./intermediate_files/mr-1-0",
+            "./intermediate_files/mr-1-1",
+        ],
     )
     assert reduce_tasks[1] == task_queue_pb2.Task(
-        task_id=4,
+        task_id=1,
         type="reduce",
-        files=["mr-2-0", "mr-2-1"],
+        files=["./intermediate_files/mr-2-0", "./intermediate_files/mr-2-1"],
     )
 
 
@@ -118,48 +123,48 @@ def test_create_tasks_9_3():
     reduce_tasks: List[task_queue_pb2.Task] = test_driver._get_reduce_tasks()
     assert len(reduce_tasks) == 3
     assert reduce_tasks[0] == task_queue_pb2.Task(
-        task_id=9,
+        task_id=0,
         type="reduce",
         files=[
-            "mr-0-0",
-            "mr-0-1",
-            "mr-0-2",
-            "mr-1-0",
-            "mr-1-1",
-            "mr-1-2",
-            "mr-2-0",
-            "mr-2-1",
-            "mr-2-2",
+            "./intermediate_files/mr-0-0",
+            "./intermediate_files/mr-0-1",
+            "./intermediate_files/mr-0-2",
+            "./intermediate_files/mr-1-0",
+            "./intermediate_files/mr-1-1",
+            "./intermediate_files/mr-1-2",
+            "./intermediate_files/mr-2-0",
+            "./intermediate_files/mr-2-1",
+            "./intermediate_files/mr-2-2",
         ],
     )
     assert reduce_tasks[1] == task_queue_pb2.Task(
-        task_id=10,
+        task_id=1,
         type="reduce",
         files=[
-            "mr-3-0",
-            "mr-3-1",
-            "mr-3-2",
-            "mr-4-0",
-            "mr-4-1",
-            "mr-4-2",
-            "mr-5-0",
-            "mr-5-1",
-            "mr-5-2",
+            "./intermediate_files/mr-3-0",
+            "./intermediate_files/mr-3-1",
+            "./intermediate_files/mr-3-2",
+            "./intermediate_files/mr-4-0",
+            "./intermediate_files/mr-4-1",
+            "./intermediate_files/mr-4-2",
+            "./intermediate_files/mr-5-0",
+            "./intermediate_files/mr-5-1",
+            "./intermediate_files/mr-5-2",
         ],
     )
     assert reduce_tasks[2] == task_queue_pb2.Task(
-        task_id=11,
+        task_id=2,
         type="reduce",
         files=[
-            "mr-6-0",
-            "mr-6-1",
-            "mr-6-2",
-            "mr-7-0",
-            "mr-7-1",
-            "mr-7-2",
-            "mr-8-0",
-            "mr-8-1",
-            "mr-8-2",
+            "./intermediate_files/mr-6-0",
+            "./intermediate_files/mr-6-1",
+            "./intermediate_files/mr-6-2",
+            "./intermediate_files/mr-7-0",
+            "./intermediate_files/mr-7-1",
+            "./intermediate_files/mr-7-2",
+            "./intermediate_files/mr-8-0",
+            "./intermediate_files/mr-8-1",
+            "./intermediate_files/mr-8-2",
         ],
     )
 
@@ -179,7 +184,7 @@ def test_type_error():
 
 
 def test_file_not_found_error():
-    """Set invalid filepath"""
+    """Set invalid filepath to throw exception"""
     test_driver: driver.Driver = driver.Driver(
         num_of_map_tasks=3,
         num_of_reduce_tasks=3,
