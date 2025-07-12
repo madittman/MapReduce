@@ -36,7 +36,6 @@ class Worker:
         print(
             f"Worker {self.pid}: Processing map task, task_id = {task_id}, files = {files}\n"
         )
-        sleep(2)  # for testing
 
         words_by_count: Dict[str, int] = self._get_words_by_count(files)
 
@@ -67,11 +66,16 @@ class Worker:
         print(
             f"Worker {self.pid}: Processing reduce task, task_id = {task_id}, files = {files}\n"
         )
-        sleep(2)  # for testing
 
         # Read in all words by count from the intermediate files
-        words_by_count: Dict[str, int] = self._get_words_by_count(files)
+        words_by_count: Dict[str, int] = {}
         for filename in files:
+            # TODO: This is a quick and dirty fix! (to prevent raise condition)
+            # Wait until file is created by another worker
+            while not os.path.isfile(filename):
+                print(f"Worker {self.pid}: waiting\n")
+                sleep(0.5)
+                continue
             with open(filename, "r") as file:
                 for line in file:
                     word: str

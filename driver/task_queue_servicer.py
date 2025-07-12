@@ -15,7 +15,7 @@ class TaskQueueServicer(task_queue_pb2_grpc.TaskQueueServicer):
     def GetTask(
         self, request: task_queue_pb2.Request, context: Any
     ) -> Optional[task_queue_pb2.Task]:
-        print(f"Worker {request.worker_id} requesting task")  # for testing
+        print(f"Worker {request.worker_id} requesting task")
         if not self.task_queue.empty():
             return self.task_queue.get()
         return None
@@ -23,7 +23,7 @@ class TaskQueueServicer(task_queue_pb2_grpc.TaskQueueServicer):
     def GetNumberOfBuckets(
         self, request: task_queue_pb2.Request, context: Any
     ) -> task_queue_pb2.NumberOfBuckets:
-        print(f"Worker {request.worker_id} requesting number of buckets")  # for testing
+        print(f"Worker {request.worker_id} requesting number of buckets")
         return task_queue_pb2.NumberOfBuckets(
             num_of_buckets=self.num_of_buckets,
         )
