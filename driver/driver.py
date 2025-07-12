@@ -183,13 +183,8 @@ class Driver:
         The driver finishes when all reduce tasks are fetched.
         """
         self._start_server()
-
         map_tasks: List[task_queue_pb2.Task] = self._get_map_tasks()
-        # pprint.pp(map_tasks)  # for testing
-
         reduce_tasks: List[task_queue_pb2.Task] = self._get_reduce_tasks()
-        # pprint.pp(reduce_tasks)  # for testing
-
         for task in [*map_tasks, *reduce_tasks]:
             self.task_queue_servicer.task_queue.put(task)
 
