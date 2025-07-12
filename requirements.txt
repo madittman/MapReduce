@@ -3,6 +3,7 @@ click==8.2.1
 grpcio==1.73.0
 grpcio-tools==1.73.0
 iniconfig==2.1.0
+mypy==1.16.1
 mypy_extensions==1.1.0
 packaging==25.0
 pathspec==0.12.1
@@ -12,3 +13,5 @@ protobuf==6.31.1
 Pygments==2.19.2
 pytest==8.4.1
 setuptools==80.9.0
+types-protobuf==6.30.2.20250703
+typing_extensions==4.14.1
