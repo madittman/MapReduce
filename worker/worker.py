@@ -31,18 +31,17 @@ class Worker:
                         words_by_count[word] += 1
         return words_by_count
 
-    def _process_map_task(self, task_id: int, files: str) -> None:
+    def _process_map_task(self, task_id: int, files: List[str]) -> None:
         """Count words in each file and write <word count> to intermediate files."""
         print(
             f"Worker {self.pid}: Processing map task, task_id = {task_id}, files = {files}\n"
         )
-
         words_by_count: Dict[str, int] = self._get_words_by_count(files)
 
         # Divide words_by_count further into buckets
         buckets: Dict[int, Dict[str, int]] = {}
-        for bucket_id in range(self.num_of_buckets):
-            buckets[bucket_id] = {}
+        for _bucket_id in range(self.num_of_buckets):
+            buckets[_bucket_id] = {}
         for word, count in words_by_count.items():
             # The first character of each word decides which bucket it goes into
             bucket_id: int = ord(word[0]) % self.num_of_buckets
@@ -61,7 +60,7 @@ class Worker:
                 for word, count in buckets[bucket_id].items():
                     file.write(f"{word} {count}\n")
 
-    def _process_reduce_task(self, task_id: int, files: str) -> None:
+    def _process_reduce_task(self, task_id: int, files: List[str]) -> None:
         """Sum up word counts from files and write to output file."""
         print(
             f"Worker {self.pid}: Processing reduce task, task_id = {task_id}, files = {files}\n"
@@ -79,9 +78,9 @@ class Worker:
             with open(filename, "r") as file:
                 for line in file:
                     word: str
-                    count: str
-                    word, count = line.split()
-                    count: int = int(count)
+                    _count: str
+                    word, _count = line.split()
+                    count: int = int(_count)
                     if word not in words_by_count.keys():
                         words_by_count[word] = count
                     else:
